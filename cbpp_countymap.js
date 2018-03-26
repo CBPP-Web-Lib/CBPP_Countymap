@@ -1,7 +1,7 @@
 /*Reusable map code*/
 /*globals d3, topojson, Typekit, CBPP*/
 
-modules.export = function(d3) {
+module.export = function(d3) {
 	"use strict";
 	CBPP_Countymap = {};
 	if (typeof(d3)==="undefined") {
