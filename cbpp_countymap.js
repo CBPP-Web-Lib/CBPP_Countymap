@@ -1,11 +1,14 @@
 /*globals d3, topojson, Typekit, CBPP*/
 /*Reusable map code*/
 
-module.exports = function(d3) {
+module.exports = function($, d3) {
 	"use strict";
 	var CBPP_Countymap = {};
 	if (typeof(d3)==="undefined") {
 		d3 = require("d3");
+	}
+	if (typeof($)==="undefined") {
+		$ = require("jquery");
 	}
 	var topojson = require("./topojson.v2.min.js");
 	CBPP_Countymap.geo = require("./us-10m.v1.json");
@@ -127,6 +130,7 @@ module.exports = function(d3) {
 				minColor:"#ff0000",
 				maxColor:"#000000",
 				zeroColor:"#ffffff",
+				noDataColor:"#cccccc",
 				dataIndex:0,
 				legendBorderWidth: 1,
 				legendBorderColor: "#cccccc",
@@ -156,7 +160,9 @@ module.exports = function(d3) {
 		};
 
 		var options = m.setOptions(userOptions);
-
+		m.setNewOptions = function(userOptions) {
+			$.extend(true, options, userOptions);
+		};
 		$(window).resize(updateDimensions);
 		var svg = d3.select(selector).append("svg")
 			.attr("width", width)
@@ -365,6 +371,8 @@ module.exports = function(d3) {
 		m.calcColors = function(data, options) {
 
 			function calcScale(dPoint, type, options) {
+				if (dPoint > options.dMax) {dPoint = options.dMax;}
+				if (dPoint < options.dMin) {dPoint = options.dMin;}
 				if (type === "twoColor") {
 					return (dPoint - options.dMin)/(options.dMax - options.dMin);
 				}
@@ -379,6 +387,9 @@ module.exports = function(d3) {
 			}
 
 			function calcColor(scale, type, options) {
+				if (isNaN(scale)) {
+					return options.noDataColor;
+				}
 				var minC, maxC, thisC, i;
 				if (type === "twoColor") {
 					minC = m.hexToRGB(options.minColor);
@@ -426,6 +437,9 @@ module.exports = function(d3) {
 		};
 
 		m.applyColors(m.calcColors(data, options));
+		m.redrawColors = function() {
+			m.applyColors(m.calcColors(data, options));
+		};
 
 		/*end color stuff*/
 
@@ -497,13 +511,13 @@ module.exports = function(d3) {
 
 		m.drawLegend(options.legendSelector);
 		updateDimensions();
-
+		return m;
 	};
 
-    function afterScriptsLoaded(callback) {
+    //function afterScriptsLoaded(callback) {
         CBPP_Countymap.Countymap = mapConstructor;
-		callback();
-    }
+			//	callback();
+    //}
 
 	return CBPP_Countymap;
 
