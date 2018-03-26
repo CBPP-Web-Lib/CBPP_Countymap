@@ -1,14 +1,16 @@
 /*Reusable map code*/
 /*globals d3, topojson, Typekit, CBPP*/
 
-modules.export = (function() {
+modules.export = function(d3) {
 	"use strict";
 	CBPP_Countymap = {};
-	var d3 = require("d3");
+	if (typeof(d3)==="undefined") {
+		d3 = require("d3");
+	}
 	var topojson = require("./topojson.v2.min.js");
 	CBPP_Countymap.geo = require("./us-10m.v1.json");
 	require("./cbpp_countymap.css");
-     
+
 	CBPP_Countymap.utilities = {
 		formats: {
 			/*from http://stackoverflow.com/questions/3883342/add-commas-to-a-number-in-jquery*/
@@ -117,7 +119,7 @@ modules.export = (function() {
 			$(selector + " .cbpp-countymap-legend-wrap").append("<div class=\"label right\" style=\"left:100%\"></div>");
 			$(selector + " .label.left").append("<div class=\"innerLabel\">" + options.legendFormatter(options.dMin) + "</div>");
 			$(selector + " .label.right").append("<div class=\"innerLabel\">" + options.legendFormatter(options.dMax) + "</div>");
-			
+
 		}
 
 		m.setOptions = function(userOptions) {
@@ -154,7 +156,7 @@ modules.export = (function() {
 		};
 
 		var options = m.setOptions(userOptions);
-		
+
 		$(window).resize(updateDimensions);
 		var svg = d3.select(selector).append("svg")
 			.attr("width", width)
@@ -191,10 +193,10 @@ modules.export = (function() {
 			if (y === "center") {
 				y = height/2;
 			}
-		
+
 			var xViewportDelta = viewport[2]*0.15*(m*amount)/120;
 			var yViewportDelta = viewport[3]*0.15*(m*amount)/120;
-			
+
 			var x1 = x - x*(width - xViewportDelta)/width;
 			var y1 = y - y*(height - yViewportDelta)/height;
 
@@ -263,7 +265,7 @@ modules.export = (function() {
 			.attr("pathID", function(d) {
 				return d.id*1;
 			});
-		
+
 		svg.append("g")
 			.attr("class","nation")
 			.selectAll("path")
@@ -326,7 +328,7 @@ modules.export = (function() {
 		});
 
 		svg.selectAll(".counties path").on("mousemove", countyMouseOver);
-		
+
 
 		/*color stuff*/
 
@@ -376,7 +378,7 @@ modules.export = (function() {
 				throw "Error: calcScale failed";
 			}
 
-			function calcColor(scale, type, options) { 
+			function calcColor(scale, type, options) {
 				var minC, maxC, thisC, i;
 				if (type === "twoColor") {
 					minC = m.hexToRGB(options.minColor);
@@ -398,7 +400,7 @@ modules.export = (function() {
 				}
 				return m.RGBToHex(thisC);
 			}
-			
+
 			var r = {};
 			var type = "twoColor", index = options.dataIndex, d;
 			if (options.dMin < 0 && options.dMax > 0) {
@@ -465,7 +467,7 @@ modules.export = (function() {
 				m.drag(x,y);
 			}
 		});
-		
+
 		$(selector).bind('gesturestart', function(event) {
 			event.stopPropagation();
 			var x = event.originalEvent.pageX - m.offset.left,
@@ -505,4 +507,4 @@ modules.export = (function() {
 
 	return CBPP_Countymap;
 
-})();
+});
