@@ -123,4 +123,25 @@
             left:-50%;
         }
     }
+    .legend-boxes {
+      text-align:center;
+    }
+    .box {
+      display:inline-block;
+      margin-left:10px;
+      margin-right:10px;
+      .label {
+        display:inline-block;
+        margin-left:5px;
+        position:relative;
+        top:0;
+        line-height:inherit;
+        vertical-align:top;
+      }
+      .box_actual {
+        width:1em;
+        height:1em;
+        display:inline-block;
+      }
+    }
 }

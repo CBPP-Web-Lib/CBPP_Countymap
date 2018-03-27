@@ -92,7 +92,19 @@ module.exports = function($, d3) {
 				.attr("height",legendHeight);
 			}*/
 		};
+
 		m.drawLegend = function(selector) {
+			if (typeof(selector)==="undefined") {
+				selector = options.legendSelector;
+			}
+			if (typeof(options.colorBins)!=="undefined") {
+				m.drawLegendBins(selector);
+			} else {
+				m.drawGradientLegend(selector);
+			}
+		}
+
+		m.drawGradientLegend = function(selector) {
 			$(selector).empty();
 			$(selector).append("<div class=\"cbpp-countymap-legend-wrap\"><div class=\"legend-gradient\"></div></div>");
 			$(selector + " .legend-gradient").css("border",options.legendBorderWidth + "px solid " + options.legendBorderColor);
@@ -123,6 +135,35 @@ module.exports = function($, d3) {
 			$(selector + " .label.left").append("<div class=\"innerLabel\">" + options.legendFormatter(options.dMin) + "</div>");
 			$(selector + " .label.right").append("<div class=\"innerLabel\">" + options.legendFormatter(options.dMax) + "</div>");
 
+		}
+
+		m.drawLegendBins = function(selector) {
+			$(selector).empty();
+			$(selector).append("<div class=\"cbpp-countymap-legend-wrap\"><div class=\"legend-boxes\"></div></div>");
+			var boxData = [].concat(options.colorBins);
+			if (options.showNoDataBin!==true) {
+				boxData = boxData.concat([{label:"No Data",color:options.noDataColor}]);
+			}
+			d3.select(selector + " .legend-boxes").selectAll(".box")
+				.data(boxData)
+				.enter()
+				.append("div")
+				.attr("class","box");
+			d3.selectAll(selector + " .legend-boxes .box").each(function(d) {
+
+				var label = $(document.createElement("div")).attr("class","label");
+				if (typeof(d.label)!=="undefined") {
+					label.html(d.label);
+				} else {
+					label.html(d.min + "-" + d.max);
+				}
+				var box_actual = $(document.createElement("div")).attr("class","box_actual");
+				box_actual.css("background-color",d.color);
+				box_actual.css("border", options.legendBorderWidth + "px solid " + options.legendBorderColor);
+				$(this).append(box_actual);
+				$(this).append(label);
+			});
+			return;
 		}
 
 		m.setOptions = function(userOptions) {
@@ -163,6 +204,9 @@ module.exports = function($, d3) {
 		m.setNewOptions = function(userOptions) {
 			$.extend(true, options, userOptions);
 		};
+		m.clearOptions = function(key) {
+			delete(options[key]);
+		}
 		$(window).resize(updateDimensions);
 		var svg = d3.select(selector).append("svg")
 			.attr("width", width)
@@ -386,6 +430,15 @@ module.exports = function($, d3) {
 				throw "Error: calcScale failed";
 			}
 
+			function calcBinnedColor(d, bins) {
+				for (var i = 0, ii = bins.length; i<ii; i++) {
+					if (d>=bins[i].min && d<bins[i].max) {
+						return bins[i].color;
+					}
+				}
+				return options.noDataColor;
+			}
+
 			function calcColor(scale, type, options) {
 				if (isNaN(scale)) {
 					return options.noDataColor;
@@ -420,25 +473,37 @@ module.exports = function($, d3) {
 			for (var key in data) {
 				if (data.hasOwnProperty(key)) {
 					d = data[key][index];
-					var scale = calcScale(d, type, options);
-					r[key] = calcColor(scale, type, options);
+					if (typeof(options.colorBins)==="undefined") {
+						var scale = calcScale(d, type, options);
+						r[key] = calcColor(scale, type, options);
+					} else {
+						r[key] = calcBinnedColor(d, options.colorBins);
+					}
 				}
 			}
 			return r;
 		};
 
-		m.applyColors = function(colorArr) {
-			svg.selectAll("path")
-				.attr("fill",function(d) {
-					if (typeof(d)!=="undefined") {
-						return colorArr[d.id*1];
-					}
-				});
+		m.applyColors = function(colorArr, duration) {
+			var fillf = function(d) {
+				if (typeof(d)!=="undefined") {
+					return colorArr[d.id*1];
+				}
+			}
+			if (typeof(duration)==="undefined") {
+				svg.selectAll("path")
+					.attr("fill",fillf);
+			} else {
+				svg.selectAll("path")
+					.transition()
+					.duration(duration)
+					.attr("fill",fillf);
+			}
 		};
 
 		m.applyColors(m.calcColors(data, options));
-		m.redrawColors = function() {
-			m.applyColors(m.calcColors(data, options));
+		m.redrawColors = function(duration) {
+			m.applyColors(m.calcColors(data, options),duration);
 		};
 
 		/*end color stuff*/
@@ -508,8 +573,8 @@ module.exports = function($, d3) {
 			}
 			return false;
 		});
-
 		m.drawLegend(options.legendSelector);
+
 		updateDimensions();
 		return m;
 	};
