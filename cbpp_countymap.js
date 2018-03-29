@@ -173,6 +173,8 @@ module.exports = function($, d3) {
 				zeroColor:"#ffffff",
 				noDataColor:"#cccccc",
 				dataIndex:0,
+				startingViewbox: [0, 0, 940, 600],
+				zoomOutLimit: [0, 0, 940, 600],
 				legendBorderWidth: 1,
 				legendBorderColor: "#cccccc",
 				legendSelector: selector + " .legendOverlay",
@@ -211,7 +213,7 @@ module.exports = function($, d3) {
 		var svg = d3.select(selector).append("svg")
 			.attr("width", width)
 			.attr("height", height)
-			.attr("viewBox","0 0 940 600");
+			.attr("viewBox", options.startingViewbox.join(" "));
 		$(selector).append(svg);
 		$(selector).append("<div class=\"legendOverlay\"></div>");
 		var addHoverStyles = function() {
@@ -251,20 +253,20 @@ module.exports = function($, d3) {
 			var y1 = y - y*(height - yViewportDelta)/height;
 
 			viewport[0] += x1*m;
-			if (viewport[0]<0) {
-				viewport[0] = 0;
+			if (viewport[0]<options.zoomOutLimit[0]) {
+				viewport[0] = options.zoomOutLimit[0];
 			}
 			viewport[2] -= (xViewportDelta)*m;
-			if (viewport[2] + viewport[0] > 940) {
-				viewport[2] = 940 - viewport[0];
+			if (viewport[2] + viewport[0] > options.zoomOutLimit[2]) {
+				viewport[2] = options.zoomOutLimit[2] + viewport[0];
 			}
 			viewport[1] += y1*m;
-			if (viewport[1]<0) {
-				viewport[1] = 0;
+			if (viewport[1]<options.zoomOutLimit[1]) {
+				viewport[1] = options.zoomOutLimit[1];
 			}
 			viewport[3] -= (yViewportDelta)*m;
-			if (viewport[3] + viewport[1] > 611) {
-				viewport[3] = 611 - viewport[1];
+			if (viewport[3] + viewport[1] > options.zoomOutLimit[3]) {
+				viewport[3] = options.zoomOutLimit[3] + viewport[1];
 			}
 			viewport = viewport.join(" ");
 			svg.attr("viewBox", viewport);
@@ -353,6 +355,9 @@ module.exports = function($, d3) {
 			if (typeof(data[id])!=="undefined") {
 				popup.show();
 				popup.html(options.popupTemplate(data[id],options.dataIndex));
+				if (typeof(options.postPopup)==="function") {
+					options.postPopup(data[id], options.dataIndex);
+				}
 			}
 		};
 
