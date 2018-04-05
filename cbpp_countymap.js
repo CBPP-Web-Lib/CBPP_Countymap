@@ -268,6 +268,12 @@ module.exports = function($, d3) {
 			if (viewport[3] + viewport[1] > options.zoomOutLimit[3]) {
 				viewport[3] = options.zoomOutLimit[3] + viewport[1];
 			}
+			if (viewport[3] < 1) {
+				viewport[3] = 1;
+			}
+			if (viewport[2] < 1) {
+				viewport[2] = 1;
+			}
 			viewport = viewport.join(" ");
 			svg.attr("viewBox", viewport);
 		};
