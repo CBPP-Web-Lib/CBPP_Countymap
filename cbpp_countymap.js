@@ -230,6 +230,12 @@ module.exports = function($, d3) {
 		};
 		addHoverStyles();
 		var us = CBPP_Countymap.geo;
+		m.zoomToViewbox = function(newViewbox, duration, callback) {
+			svg.transition()
+				.attr("viewBox", newViewbox)
+				.duration(duration)
+				.on("end", callback);
+		};
 		m.zoom = function(x,y,direction, amount) {
 			var m = 1;
 			if (direction==="in") {m=1;}
@@ -368,6 +374,9 @@ module.exports = function($, d3) {
 		};
 
 		$(window).on("mousemove", function(e) {
+			if (hoverEventsBlocked) {
+				return;
+			}
 			m.mouseX = e.pageX;
 			m.mouseY = e.pageY;
 			if (!$.contains(svg.node(),e.target)) {
@@ -389,7 +398,32 @@ module.exports = function($, d3) {
 		});
 
 		svg.selectAll(".counties path").on("mousemove", countyMouseOver);
+		var hoverEventsBlocked = false;
+		m.blockHoverEvents = function() {
+			hoverEventsBlocked = true;
+		};
+		m.allowHoverEvents = function() {
+			hoverEventsBlocked = false;
+		}
+		m.highlightPath = function(pathID) {
+			var obj = $(selector + " path[pathID='" + pathID + "']");
+			var pathOff = obj.offset();
+			var mapOff = $(selector).offset();
+			var width = obj.width();
+			var height = obj.height();
+			m.mouseX = pathOff.left - mapOff.left + width/2;
+			m.mouseY = pathOff.top - mapOff.top + height/2;
+			countyMouseOver({id:pathID});
+			m.unhighlightPaths();
+			var parent = obj.parent();
+			obj.detach();
+			parent.append(obj);
+			obj.addClass("highlight");
+		}
 
+		m.unhighlightPaths = function() {
+			$(selector + " svg path.highlight").removeClass("highlight");
+		};
 
 		/*color stuff*/
 
