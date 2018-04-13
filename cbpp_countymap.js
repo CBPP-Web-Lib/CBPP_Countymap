@@ -359,8 +359,12 @@ module.exports = function($, d3) {
 				css.left = (pos.left + options.popupOffset.left) + "px";
 			}*/
 			if (pos.top > height/2) {
+				popup.addClass("s");
+				popup.removeClass("n");
 				css.bottom = (height - pos.top + options.popupOffset.top) + "px";
 			} else {
+				popup.addClass("n");
+				popup.removeClass("s");
 				css.top = (pos.top + options.popupOffset.top) + "px";
 			}
 			popup.css(css);
@@ -386,6 +390,10 @@ module.exports = function($, d3) {
 		});
 
 		$(selector + " svg").on("touchstart", function(e) {
+			if (hoverEventsBlocked) {
+				return;
+			}
+			m.unhighlightPaths();
 			$(selector + " svg path.selected").removeClass("selected");
 			$(e.target).addClass("selected");
 			m.mouseX = e.originalEvent.touches[0].pageX;
@@ -397,22 +405,40 @@ module.exports = function($, d3) {
 			countyMouseOver({id:d3.select(e.target).attr("pathID")});
 		});
 
-		svg.selectAll(".counties path").on("mousemove", countyMouseOver);
+		svg.selectAll(".counties path").on("mousemove", function(d) {
+			if (hoverEventsBlocked) {
+				return;
+			}
+			countyMouseOver(d);
+		});
 		var hoverEventsBlocked = false;
+		var scrollEventsBlocked = false;
 		m.blockHoverEvents = function() {
 			hoverEventsBlocked = true;
+			var hoverBlocker = $(document.createElement("div"))
+				.addClass("hoverBlocker");
+			$(selector).append(hoverBlocker);
 		};
 		m.allowHoverEvents = function() {
 			hoverEventsBlocked = false;
+			$(selector).find(".hoverBlocker").remove();
+		};
+		m.blockScrollEvents = function() {
+			scrollEventsBlocked = true;
+		};
+		m.allowScrollEvents = function() {
+			scrollEventsBlocked = false;
 		}
 		m.highlightPath = function(pathID) {
-			var obj = $(selector + " path[pathID='" + pathID + "']");
+			var s = selector + " path[pathID='" + pathID + "']";
+			var bbox = d3.select(s).node().getBBox();
+			var obj = $(s);
 			var pathOff = obj.offset();
 			var mapOff = $(selector).offset();
-			var width = obj.width();
-			var height = obj.height();
-			m.mouseX = pathOff.left - mapOff.left + width/2;
-			m.mouseY = pathOff.top - mapOff.top + height/2;
+			var width = bbox.width/svg.attr("viewBox").split(" ")[2]*$(svg.node()).width();
+			var height = bbox.height/svg.attr("viewBox").split(" ")[3]*$(svg.node()).height();
+			m.mouseX = pathOff.left + width/2;
+			m.mouseY = pathOff.top  + height/2;
 			countyMouseOver({id:pathID});
 			m.unhighlightPaths();
 			var parent = obj.parent();
@@ -603,6 +629,9 @@ module.exports = function($, d3) {
 			}
 		});
 		$(window).bind('mousewheel DOMMouseScroll', function(event) {
+			if (scrollEventsBlocked) {
+				return;
+			}
 			var x = event.originalEvent.pageX - m.offset.left,
 				y = event.originalEvent.pageY - m.offset.top;
 			if (x < 0 || x > width || y < 0 || y > height) {return;}
