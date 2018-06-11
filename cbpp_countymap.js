@@ -231,11 +231,30 @@ module.exports = function($, d3) {
 		addHoverStyles();
 		var us = CBPP_Countymap.geo;
 		m.zoomToViewbox = function(newViewbox, duration, callback) {
+			var oldViewbox = svg.attr("viewBox");
 			svg.transition()
 				.attr("viewBox", newViewbox)
 				.duration(duration)
-				.on("end", callback);
+				.on("end", function() {
+					updateStrokeWidths(oldViewbox, newViewbox);
+					if (typeof(callback)==="function") {
+						callback();
+					}
+				});
 		};
+		function updateStrokeWidths(oldvb, newvb) {
+			oldvb = oldvb.split(" ");
+			newvb = newvb.split(" ");
+			var ratio = newvb[2]/oldvb[2];
+			svg.selectAll("path")
+				.each(function() {
+					var stroke = d3.select(this).attr("stroke-width");
+					if (stroke) {
+						stroke*=ratio;
+						d3.select(this).attr("stroke-width",stroke);
+					}
+				});
+		}
 		m.zoom = function(x,y,direction, amount) {
 			var m = 1;
 			if (direction==="in") {m=1;}
@@ -312,6 +331,9 @@ module.exports = function($, d3) {
 			.selectAll("path")
 			.data(topojson.feature(us, us.objects.counties).features)
 			.enter().append("path")
+			.attr("stroke-width",2)
+			.attr("stroke","#B9292F")
+			.attr("stroke-opacity",0)
 			.attr("d", d3.geoPath())
 			.attr("pathID", function(d) {
 				return d.id*1;
@@ -326,6 +348,8 @@ module.exports = function($, d3) {
 			.attr("class", function(d) {
 				return "state_" + (d.id*1);
 			})
+			.attr("stroke","#fff")
+			.attr("stroke-width",1)
 			.attr("pathID", function(d) {
 				return d.id*1;
 			});
@@ -335,6 +359,7 @@ module.exports = function($, d3) {
 			.selectAll("path")
 			.data(topojson.feature(us, us.objects.nation).features)
 			.enter().append("path")
+			.attr("stroke-width",1)
 			.attr("d", d3.geoPath())
 			.attr("pathID", function(d) {
 				return d.id*1;
@@ -445,9 +470,11 @@ module.exports = function($, d3) {
 			obj.detach();
 			parent.append(obj);
 			obj.addClass("highlight");
+			d3.select(s).attr("stroke-opacity",1);
 		}
 
 		m.unhighlightPaths = function() {
+			d3.select(selector + " svg path.highlight").attr("stroke-opacity",0);
 			$(selector + " svg path.highlight").removeClass("highlight");
 		};
 
