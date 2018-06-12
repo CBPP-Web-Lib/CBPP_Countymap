@@ -79,7 +79,7 @@ module.exports = function($, d3) {
 		$(selector).addClass("cbpp_countymap");
 		var popup = $("<div class=\"popup\"></div>");
 		$(selector).append(popup);
-		$(selector).append("<div class=\"zoomButtons noselect\"><div class=\"zoomIn\"><div>+</div></div><div class=\"zoomOut\"><div>&ndash;</div></div>");
+
 		var width, height, legendWidth, legendHeight, legend_svg;
 		var updateDimensions = function() {
 			width = $(selector).width();
@@ -102,7 +102,7 @@ module.exports = function($, d3) {
 			} else {
 				m.drawGradientLegend(selector);
 			}
-		}
+		};
 
 		m.drawGradientLegend = function(selector) {
 			$(selector).empty();
@@ -135,7 +135,7 @@ module.exports = function($, d3) {
 			$(selector + " .label.left").append("<div class=\"innerLabel\">" + options.legendFormatter(options.dMin) + "</div>");
 			$(selector + " .label.right").append("<div class=\"innerLabel\">" + options.legendFormatter(options.dMax) + "</div>");
 
-		}
+		};
 
 		m.drawLegendBins = function(selector) {
 			$(selector).empty();
@@ -164,7 +164,7 @@ module.exports = function($, d3) {
 				$(this).append(label);
 			});
 			return;
-		}
+		};
 
 		m.setOptions = function(userOptions) {
 			var defaults = {
@@ -175,6 +175,7 @@ module.exports = function($, d3) {
 				dataIndex:0,
 				startingViewbox: [0, 0, 940, 600],
 				zoomOutLimit: [0, 0, 940, 600],
+				zoomable:true,
 				legendBorderWidth: 1,
 				legendBorderColor: "#cccccc",
 				legendSelector: selector + " .legendOverlay",
@@ -208,8 +209,11 @@ module.exports = function($, d3) {
 		};
 		m.clearOptions = function(key) {
 			delete(options[key]);
-		}
+		};
 		$(window).resize(updateDimensions);
+		if (options.zoomable) {
+			$(selector).append("<div class=\"zoomButtons noselect\"><div class=\"zoomIn\"><div>+</div></div><div class=\"zoomOut\"><div>&ndash;</div></div>");
+		}
 		var svg = d3.select(selector).append("svg")
 			.attr("width", width)
 			.attr("height", height)
@@ -231,6 +235,7 @@ module.exports = function($, d3) {
 		addHoverStyles();
 		var us = CBPP_Countymap.geo;
 		m.zoomToViewbox = function(newViewbox, duration, callback) {
+			if (!m.zoomable) {return;}
 			var oldViewbox = svg.attr("viewBox");
 			svg.transition()
 				.attr("viewBox", newViewbox)
@@ -256,6 +261,7 @@ module.exports = function($, d3) {
 				});
 		}
 		m.zoom = function(x,y,direction, amount) {
+			if (!options.zoomable) {return;}
 			var m = 1;
 			if (direction==="in") {m=1;}
 			else if (direction==="out") {m=-1;}
@@ -300,7 +306,11 @@ module.exports = function($, d3) {
 				viewport[2] = 1;
 			}
 			viewport = viewport.join(" ");
+			updateStrokeWidths(svg.attr("viewBox"), viewport);
 			svg.attr("viewBox", viewport);
+			if (typeof(options.postZoom)==="function") {
+				options.postZoom();
+			}
 		};
 		m.zoomIn = function(x, y, amount) {
 			m.zoom(x,y,"in", amount);
@@ -453,7 +463,7 @@ module.exports = function($, d3) {
 		};
 		m.allowScrollEvents = function() {
 			scrollEventsBlocked = false;
-		}
+		};
 		m.highlightPath = function(pathID) {
 			var s = selector + " path[pathID='" + pathID + "']";
 			var bbox = d3.select(s).node().getBBox();
@@ -471,7 +481,7 @@ module.exports = function($, d3) {
 			parent.append(obj);
 			obj.addClass("highlight");
 			d3.select(s).attr("stroke-opacity",1);
-		}
+		};
 
 		m.unhighlightPaths = function() {
 			d3.select(selector + " svg path.highlight").attr("stroke-opacity",0);
@@ -511,7 +521,6 @@ module.exports = function($, d3) {
 		};
 
 		m.calcColors = function(data, options) {
-
 			function calcScale(dPoint, type, options) {
 				if (dPoint > options.dMax) {dPoint = options.dMax;}
 				if (dPoint < options.dMin) {dPoint = options.dMin;}
@@ -587,7 +596,7 @@ module.exports = function($, d3) {
 				if (typeof(d)!=="undefined") {
 					return colorArr[d.id*1];
 				}
-			}
+			};
 			if (typeof(duration)==="undefined") {
 				svg.selectAll("path")
 					.attr("fill",fillf);
@@ -600,6 +609,7 @@ module.exports = function($, d3) {
 		};
 
 		m.applyColors(m.calcColors(data, options));
+
 		m.redrawColors = function(duration) {
 			m.applyColors(m.calcColors(data, options),duration);
 		};
