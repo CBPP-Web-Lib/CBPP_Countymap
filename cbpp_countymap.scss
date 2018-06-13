@@ -147,4 +147,42 @@
         display:inline-block;
       }
     }
+    .legend-gradient-boxes {
+      .box {
+        margin:0px;
+        position:relative;
+        .label {
+          position:absolute;
+          width:0px;
+          bottom:0px;
+          right:0px;
+          margin:0px;
+          .divider {
+            width:1px;
+            height:1.5em;
+            border-left:1px solid #000;
+            position:absolute;
+            bottom:0.25em;
+            z-index:100;
+          }
+          .inner {
+            position:relative;
+            left:-50px;
+            width:100px;
+            top:1.1em;
+            text-align:center;
+          }
+        }
+        .label.firstlabel {
+          left:0px;
+          right:auto;
+          .divider {
+
+          }
+        }
+        .box_actual {
+          width:100%;
+        }
+      }
+    }
 }

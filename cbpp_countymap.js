@@ -98,10 +98,59 @@ module.exports = function($, d3) {
 				selector = options.legendSelector;
 			}
 			if (typeof(options.colorBins)!=="undefined") {
-				m.drawLegendBins(selector);
+				if (options.binGradientLegend===true) {
+					m.drawGradientBinsLegend(selector);
+				} else {
+					m.drawLegendBins(selector);
+				}
 			} else {
 				m.drawGradientLegend(selector);
 			}
+		};
+
+		m.drawGradientBinsLegend = function(selector) {
+			$(selector).empty();
+			$(selector).append("<div class=\"cbpp-countymap-legend-wrap\"><div class=\"legend-gradient-boxes\"></div></div>");
+			var boxData = [].concat(options.colorBins);
+			/*if (options.showNoDataBin!==true) {
+				boxData = boxData.concat([{label:"No Data",color:options.noDataColor}]);
+			}*/
+
+			d3.select(selector + " .legend-gradient-boxes").selectAll(".box")
+				.data(boxData)
+				.enter()
+				.append("div")
+				.attr("class","box")
+				.style("width",100/boxData.length+"%");
+			d3.selectAll(selector + " .legend-gradient-boxes .box").each(function(d, i) {
+				if (i===0) {
+					var leftlabel = $(document.createElement("div")).attr("class","firstlabel label");
+					var leftInner = $(document.createElement("div")).attr("class","inner");
+					if (typeof(boxData[0].label)==="undefined") {
+						leftInner.html(boxData[0].min);
+					}
+					leftlabel.append(leftInner);
+					leftlabel.append($(document.createElement("div")).attr("class","divider"));
+					$(this).append(leftlabel);
+				}
+				var label = $(document.createElement("div")).attr("class","label");
+				var inner = $(document.createElement("div")).attr("class","inner");
+				if (typeof(d.label)!=="undefined") {
+					inner.html(d.label);
+				} else {
+					inner.html(d.max);
+				}
+				label.append(inner);
+				label.append($(document.createElement("div")).attr("class","divider"));
+				var box_actual = $(document.createElement("div")).attr("class","box_actual");
+				box_actual.css("background-color",d.color);
+			//	box_actual.css("border-right", options.legendBorderWidth + "px solid " + options.legendBorderColor);
+				$(this).append(box_actual);
+				$(this).append(label);
+			});
+
+			return;
+
 		};
 
 		m.drawGradientLegend = function(selector) {
@@ -278,8 +327,9 @@ module.exports = function($, d3) {
 			}
 
 			var xViewportDelta = viewport[2]*0.15*(m*amount)/120;
-			var yViewportDelta = viewport[3]*0.15*(m*amount)/120;
-
+			//var yViewportDelta = viewport[3]*0.15*(m*amount)/120;
+			var ar = width/height;
+			var yViewportDelta = xViewportDelta/ar;
 			var x1 = x - x*(width - xViewportDelta)/width;
 			var y1 = y - y*(height - yViewportDelta)/height;
 
@@ -288,19 +338,26 @@ module.exports = function($, d3) {
 				viewport[0] = options.zoomOutLimit[0];
 			}
 			viewport[2] -= (xViewportDelta)*m;
-			if (viewport[2] + viewport[0] > options.zoomOutLimit[2]) {
-				viewport[2] = options.zoomOutLimit[2] + viewport[0];
+			var xdiff;
+			if (viewport[2] + viewport[0] > options.zoomOutLimit[2] + options.zoomOutLimit[0]) {
+				xdiff = viewport[2] + viewport[0] - (options.zoomOutLimit[2] + options.zoomOutLimit[0]);
+				viewport[0] =- xdiff;
+				if (viewport[0] < options.zoomOutLimit[0]) {
+					xdiff = viewport[2] - options.zoomOutLimit[2];
+					viewport[0] = options.zoomOutLimit[0];
+					viewport[2] -= xdiff;
+				}
 			}
 			viewport[1] += y1*m;
 			if (viewport[1]<options.zoomOutLimit[1]) {
 				viewport[1] = options.zoomOutLimit[1];
 			}
-			viewport[3] -= (yViewportDelta)*m;
-			if (viewport[3] + viewport[1] > options.zoomOutLimit[3]) {
+			viewport[3] = viewport[2]/ar;
+			/*if (viewport[3] + viewport[1] > options.zoomOutLimit[3]) {
 				viewport[3] = options.zoomOutLimit[3] + viewport[1];
-			}
-			if (viewport[3] < 1) {
-				viewport[3] = 1;
+			}*/
+			if (viewport[3] < 1/ar) {
+				viewport[3] = 1/ar;
 			}
 			if (viewport[2] < 1) {
 				viewport[2] = 1;
@@ -633,6 +690,9 @@ module.exports = function($, d3) {
 		$(selector + " svg").bind("mouseup touchend", function(e) {
 			m.dragOn = false;
 			delete(m.dragBase);
+			if (typeof(options.postDrag)==="function") {
+				options.postDrag();
+			}
 		});
 		$(selector + " svg").bind('mouseout', function(e) {
 			if ($.contains($(selector)[0],e.relatedTarget)) {
