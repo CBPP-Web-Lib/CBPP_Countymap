@@ -12,8 +12,14 @@ module.exports = function($, d3) {
 	}
 	var topojson = require("./topojson.v2.min.js");
 	CBPP_Countymap.geo = require("./us-10m.v1.json");
+	CBPP_Countymap.pathCache = {};
 	require("./cbpp_countymap.css");
-
+	var us = CBPP_Countymap.geo;
+	CBPP_Countymap.geoJSON = {
+		counties: topojson.feature(us, us.objects.counties).features,
+		states: topojson.feature(us, us.objects.states).features,
+		nation: topojson.feature(us, us.objects.nation).features
+	};
 	CBPP_Countymap.utilities = {
 		formats: {
 			/*from http://stackoverflow.com/questions/3883342/add-commas-to-a-number-in-jquery*/
@@ -282,7 +288,6 @@ module.exports = function($, d3) {
 			styleSheet.insertRule(selector + " svg .counties path:hover, " + selector + " svg .counties path.selected {fill:" + options.hoverColor + "}",0);
 		};
 		addHoverStyles();
-		var us = CBPP_Countymap.geo;
 		m.zoomToViewbox = function(newViewbox, duration, callback) {
 			if (!m.zoomable) {return;}
 			var oldViewbox = svg.attr("viewBox");
@@ -393,25 +398,38 @@ module.exports = function($, d3) {
 			viewport = viewport.join(" ");
 			svg.attr("viewBox", viewport);
 		};
+		var path = d3.geoPath();
+		var start = Date.now();
 		svg.append("g")
 			.attr("class", "counties")
 			.selectAll("path")
-			.data(topojson.feature(us, us.objects.counties).features)
+			.data(CBPP_Countymap.geoJSON.counties)
 			.enter().append("path")
 			.attr("stroke-width",2)
 			.attr("stroke","#B9292F")
 			.attr("stroke-opacity",0)
-			.attr("d", d3.geoPath())
+			.attr("d", function(d) {
+				var uid = 1000000 + d.id*1;
+				if (typeof(CBPP_Countymap.pathCache[uid])==="undefined") {
+					CBPP_Countymap.pathCache[uid] = path(d);
+				}
+				return CBPP_Countymap.pathCache[uid];
+			})
 			.attr("pathID", function(d) {
 				return d.id*1;
 			});
-
 		svg.append("g")
 			.attr("class","states")
 			.selectAll("path")
-			.data(topojson.feature(us, us.objects.states).features)
+			.data(CBPP_Countymap.geoJSON.states)
 			.enter().append("path")
-			.attr("d", d3.geoPath())
+			.attr("d", function(d) {
+				var uid = 1000 + d.id*1;
+				if (typeof(CBPP_Countymap.pathCache[uid])==="undefined") {
+					CBPP_Countymap.pathCache[uid] = path(d);
+				}
+				return CBPP_Countymap.pathCache[uid];
+			})
 			.attr("class", function(d) {
 				return "state_" + (d.id*1);
 			})
@@ -420,18 +438,22 @@ module.exports = function($, d3) {
 			.attr("pathID", function(d) {
 				return d.id*1;
 			});
-
 		svg.append("g")
 			.attr("class","nation")
 			.selectAll("path")
-			.data(topojson.feature(us, us.objects.nation).features)
+			.data(CBPP_Countymap.geoJSON.nation)
 			.enter().append("path")
 			.attr("stroke-width",1)
-			.attr("d", d3.geoPath())
+			.attr("d", function(d) {
+				var uid = d.id*1;
+				if (typeof(CBPP_Countymap.pathCache[uid])==="undefined") {
+					CBPP_Countymap.pathCache[uid] = path(d);
+				}
+				return CBPP_Countymap.pathCache[uid];
+			})
 			.attr("pathID", function(d) {
 				return d.id*1;
 			});
-
 		var countyMouseOver = function(d) {
 			var id = d.id*1;
 			var mapOffset = $(svg.node()).offset();
@@ -727,7 +749,7 @@ module.exports = function($, d3) {
 		});
 		$(window).bind('mousewheel DOMMouseScroll', function(event) {
 			if (scrollEventsBlocked) {
-				return;
+				return true;
 			}
 			var x = event.originalEvent.pageX - m.offset.left,
 				y = event.originalEvent.pageY - m.offset.top;
