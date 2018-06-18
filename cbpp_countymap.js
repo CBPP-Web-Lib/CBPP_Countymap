@@ -751,6 +751,7 @@ module.exports = function($, d3) {
 			if (scrollEventsBlocked) {
 				return true;
 			}
+			if (!m) {return;}
 			var x = event.originalEvent.pageX - m.offset.left,
 				y = event.originalEvent.pageY - m.offset.top;
 			if (x < 0 || x > width || y < 0 || y > height) {return;}
