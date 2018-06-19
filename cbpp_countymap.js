@@ -403,7 +403,9 @@ module.exports = function($, d3) {
 		svg.append("g")
 			.attr("class", "counties")
 			.selectAll("path")
-			.data(CBPP_Countymap.geoJSON.counties)
+			.data(CBPP_Countymap.geoJSON.counties, function(d) {
+				return d.id;
+			})
 			.enter().append("path")
 			.attr("stroke-width",2)
 			.attr("stroke","#B9292F")
