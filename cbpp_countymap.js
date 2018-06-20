@@ -232,6 +232,7 @@ module.exports = function($, d3) {
 				startingViewbox: [0, 0, 940, 600],
 				zoomOutLimit: [0, 0, 940, 600],
 				zoomable:true,
+				dragable:true,
 				legendBorderWidth: 1,
 				legendBorderColor: "#cccccc",
 				legendSelector: selector + " .legendOverlay",
@@ -290,7 +291,7 @@ module.exports = function($, d3) {
 		};
 		addHoverStyles();
 		m.zoomToViewbox = function(newViewbox, duration, callback) {
-			if (!m.zoomable) {return;}
+			if (!options.zoomable) {return;}
 			var oldViewbox = svg.attr("viewBox");
 			svg.transition()
 				.attr("viewBox", newViewbox)
@@ -704,6 +705,7 @@ module.exports = function($, d3) {
 
 		/*end color stuff*/
 		var mousedownTouchstart = function(e) {
+			if (!options.dragable) {return;}
 			m.dragOn = true;
 			var x = e.pageX - m.offset.left,
 			y = e.pageY - m.offset.top;
