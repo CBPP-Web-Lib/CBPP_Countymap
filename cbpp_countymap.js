@@ -1,6 +1,6 @@
 /*globals d3, topojson, Typekit, CBPP*/
 /*Reusable map code*/
-
+var md5 = require("md5");
 module.exports = function($, d3) {
 	"use strict";
 	var CBPP_Countymap = {};
@@ -81,6 +81,7 @@ module.exports = function($, d3) {
 
 	var mapConstructor = function(selector, data, userOptions) {
 		var m = {};
+		var namespace = "u" + md5(selector);
 		$(selector).empty();
 		$(selector).addClass("cbpp_countymap");
 		var popup = $("<div class=\"popup\"></div>");
@@ -265,7 +266,7 @@ module.exports = function($, d3) {
 		m.clearOptions = function(key) {
 			delete(options[key]);
 		};
-		$(window).resize(updateDimensions);
+		$(window).on("resize."+namespace, updateDimensions);
 		if (options.zoomable) {
 			$(selector).append("<div class=\"zoomButtons noselect\"><div class=\"zoomIn\"><div>+</div></div><div class=\"zoomOut\"><div>&ndash;</div></div>");
 		}
@@ -493,7 +494,7 @@ module.exports = function($, d3) {
 			}
 		};
 
-		$(window).on("mousemove", function(e) {
+		var handleMouseMove = function(e) {
 			if (hoverEventsBlocked) {
 				return;
 			}
@@ -503,9 +504,11 @@ module.exports = function($, d3) {
 				$(selector + " svg path.selected").removeClass("selected");
 				popup.hide();
 			}
-		});
+		};
 
-		$(selector + " svg").on("touchstart", function(e) {
+		$(window).on("mousemove."+namespace, handleMouseMove);
+
+		var handleTouchStart = function(e) {
 			if (hoverEventsBlocked) {
 				return;
 			}
@@ -519,14 +522,18 @@ module.exports = function($, d3) {
 				popup.hide();
 			}
 			countyMouseOver({id:d3.select(e.target).attr("pathID")});
-		});
+		};
 
-		svg.selectAll(".counties path").on("mousemove", function(d) {
+		$(selector + " svg").on("touchstart."+namespace, handleTouchStart);
+
+		var handleMouseMove = function(d) {
 			if (hoverEventsBlocked) {
 				return;
 			}
 			countyMouseOver(d);
-		});
+		}
+
+		svg.selectAll(".counties path").on("mousemove."+namespace, handleMouseMove);
 		var hoverEventsBlocked = false;
 		var scrollEventsBlocked = false;
 		m.blockHoverEvents = function() {
@@ -696,8 +703,7 @@ module.exports = function($, d3) {
 		};
 
 		/*end color stuff*/
-
-		$(selector + " svg").bind('mousedown touchstart', function(e) {
+		var mousedownTouchstart = function(e) {
 			m.dragOn = true;
 			var x = e.pageX - m.offset.left,
 			y = e.pageY - m.offset.top;
@@ -710,23 +716,29 @@ module.exports = function($, d3) {
 			}
 			m.dragBase = [x,y];
 			return false;
-		});
-		$(selector + " svg").bind("mouseup touchend", function(e) {
+		};
+		$(selector + " svg").on('mousedown.'+namespace+' touchstart.'+namespace, mousedownTouchstart);
+
+		var mouseupTouchend = function(e) {
 			m.dragOn = false;
 			delete(m.dragBase);
 			if (typeof(options.postDrag)==="function") {
 				options.postDrag();
 			}
-		});
-		$(selector + " svg").bind('mouseout', function(e) {
+		};
+		$(selector + " svg").on("mouseup."+ namespace +" touchend." + namespace, mouseupTouchend);
+
+		var mouseoutHandler = function(e) {
 			if ($.contains($(selector)[0],e.relatedTarget)) {
 				return;
 			} else {
 				m.dragOn = false;
 				delete(m.dragBase);
 			}
-		});
-		$(selector + " svg").bind('mousemove touchmove', function(e) {
+		};
+		$(selector + " svg").on('mouseout.'+namespace, mouseoutHandler);
+
+		var mousemoveTouchmove = function(e) {
 			if (m.dragOn===true) {
 				e = e.originalEvent;
 				var x = e.pageX - m.offset.left,
@@ -737,9 +749,10 @@ module.exports = function($, d3) {
 				}
 				m.drag(x,y);
 			}
-		});
+		};
+		$(selector + " svg").on('mousemove.' + namespace + ' touchmove.'+namespace, mousemoveTouchmove);
 
-		$(selector).bind('gesturestart', function(event) {
+		var gestureStartHandler = function(event) {
 			event.stopPropagation();
 			var x = event.originalEvent.pageX - m.offset.left,
 				y = event.originalEvent.pageY - m.offset.top;
@@ -748,8 +761,11 @@ module.exports = function($, d3) {
 			} else if (event.originalEvent.scale < 1.0) {
 				m.zoomOut(x, y);
 			}
-		});
-		$(window).bind('mousewheel DOMMouseScroll', function(event) {
+		};
+
+		$(selector).on('gesturestart.'+namespace, gestureStartHandler);
+
+		var mousewheelScrollHandler = function(event) {
 			if (scrollEventsBlocked) {
 				return true;
 			}
@@ -768,7 +784,17 @@ module.exports = function($, d3) {
 				m.zoomOut(x, y, amount);
 			}
 			return false;
-		});
+		};
+		$(selector).on('mousewheel.' + namespace + ' DOMMouseScroll.'+namespace, mousewheelScrollHandler);
+
+
+		m.destroy = function() {
+			$(selector).off("." + namespace);
+			$(selector).find("*").off("." + namespace);
+			$(window).off("." + namespace);
+			$(selector).empty();
+		}
+
 		m.drawLegend(options.legendSelector);
 
 		updateDimensions();
