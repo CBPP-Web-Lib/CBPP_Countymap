@@ -396,6 +396,18 @@ module.exports = function($, d3) {
 			var dY = y - m.dragBase[1];
 			viewport[0] = viewport[0]*1 - dX/width*viewport[2];
 			viewport[1] = viewport[1]*1 - dY/height*viewport[3];
+			if (viewport[0]*1 < options.zoomOutLimit[0]) {
+				viewport[0] = options.zoomOutLimit[0];
+			}
+			if (viewport[0]*1 + viewport[2]*1 > options.zoomOutLimit[0] + options.zoomOutLimit[2]) {
+				viewport[0] = options.zoomOutLimit[2] - viewport[2];
+			}
+			if (viewport[1]*1 < options.zoomOutLimit[1]) {
+				viewport[1] = options.zoomOutLimit[1];
+			}
+			if (viewport[1]*1 + viewport[3]*1 > options.zoomOutLimit[1] + options.zoomOutLimit[3]) {
+				viewport[1] = options.zoomOutLimit[3] - viewport[3];
+			}
 			m.dragBase = [x,y];
 			viewport = viewport.join(" ");
 			svg.attr("viewBox", viewport);
