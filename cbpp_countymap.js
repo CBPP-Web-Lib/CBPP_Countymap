@@ -488,6 +488,9 @@ module.exports = function($, d3) {
 			popup.css(css);
 			if (typeof(data[id])!=="undefined") {
 				popup.show();
+				if (typeof(options.prePopup)==="function") {
+					options.prePopup(popup);
+				}
 				popup.html(options.popupTemplate(data[id],options.dataIndex));
 				if (typeof(options.postPopup)==="function") {
 					options.postPopup(data[id], options.dataIndex);
